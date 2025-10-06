@@ -12,7 +12,15 @@ import SuperwallKit
 struct claimed4App: App {
     
     init() {
-        Superwall.configure(apiKey: "pk_rM88maB661KDuyt01yktL")
+        // Read API key from Info.plist to avoid hardcoding secrets
+        if let apiKey = Bundle.main.object(forInfoDictionaryKey: "SUPERWALL_API_KEY") as? String,
+           !apiKey.isEmpty {
+            Superwall.configure(apiKey: apiKey)
+        } else {
+            #if DEBUG
+            print("SUPERWALL_API_KEY missing. Superwall not configured.")
+            #endif
+        }
     }
     
     var body: some Scene {

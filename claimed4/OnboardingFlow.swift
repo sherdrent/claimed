@@ -41,6 +41,7 @@ struct OnboardingFlow: View {
     @State private var safariURL: URL?
     @State private var slideOffset: CGFloat = 0
     @State private var clickedPaywall = false
+    @State private var owedTimer: Timer? = nil
 
     var body: some View {
         ZStack {
@@ -69,7 +70,7 @@ struct OnboardingFlow: View {
                             
                             Rectangle()
                                 .fill(Color.white)
-                                .frame(width: geometry.size.width * CGFloat(currentStep) / 11.0, height: 4)
+                                .frame(width: geometry.size.width * CGFloat(currentStep) / 13.0, height: 4)
                                 .animation(.easeInOut(duration: 0.3), value: currentStep)
                         }
                     }
@@ -480,13 +481,19 @@ struct OnboardingFlow: View {
                 .padding(.top, 60)
                 .onAppear {
                     animatedAmount = 0
-                    Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { timer in
+                    owedTimer?.invalidate()
+                    owedTimer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { timer in
                         if animatedAmount < 428 {
                             animatedAmount += 1
                         } else {
                             timer.invalidate()
+                            owedTimer = nil
                         }
                     }
+                }
+                .onDisappear {
+                    owedTimer?.invalidate()
+                    owedTimer = nil
                 }
 
             OwedCard()
@@ -776,6 +783,7 @@ struct OnboardingFlow: View {
 // MARK: - AmountAnimationScreen View
 struct AmountAnimationScreen: View {
     @State private var animatedAmount: Double = 120.0
+    @State private var animationTimer: Timer? = nil
     
     var body: some View {
         ZStack {
@@ -841,6 +849,10 @@ struct AmountAnimationScreen: View {
         .onAppear {
             startAnimation()
         }
+        .onDisappear {
+            animationTimer?.invalidate()
+            animationTimer = nil
+        }
     }
     
     private func startAnimation() {
@@ -851,7 +863,8 @@ struct AmountAnimationScreen: View {
         let increment = (targetAmount - animatedAmount) / Double(steps)
         let timePerStep = duration / Double(steps)
         
-        Timer.scheduledTimer(withTimeInterval: timePerStep, repeats: true) { timer in
+        animationTimer?.invalidate()
+        animationTimer = Timer.scheduledTimer(withTimeInterval: timePerStep, repeats: true) { timer in
             if animatedAmount < targetAmount {
                 animatedAmount += increment
                 if animatedAmount > targetAmount {
@@ -859,6 +872,7 @@ struct AmountAnimationScreen: View {
                 }
             } else {
                 timer.invalidate()
+                animationTimer = nil
             }
         }
     }
@@ -871,6 +885,7 @@ struct CalculatingScreen: View {
     @State private var percentage: Int = 0
     @State private var showNextButton: Bool = false
     @Binding var currentStep: Int
+    @State private var calculationTimer: Timer? = nil
     
     var body: some View {
         ZStack {
@@ -945,6 +960,10 @@ struct CalculatingScreen: View {
         .onAppear {
             startCalculating()
         }
+        .onDisappear {
+            calculationTimer?.invalidate()
+            calculationTimer = nil
+        }
     }
     
     private var subtitleText: String {
@@ -959,7 +978,8 @@ struct CalculatingScreen: View {
     
     private func startCalculating() {
         // 7 seconds total / 100 steps = 0.07 seconds per step
-        Timer.scheduledTimer(withTimeInterval: 0.07, repeats: true) { timer in
+        calculationTimer?.invalidate()
+        calculationTimer = Timer.scheduledTimer(withTimeInterval: 0.07, repeats: true) { timer in
             if percentage < 100 {
                 percentage += 1
                 progress = CGFloat(percentage) / 100.0
@@ -968,6 +988,7 @@ struct CalculatingScreen: View {
                 withAnimation {
                     showNextButton = true
                 }
+                calculationTimer = nil
             }
         }
     }
@@ -978,6 +999,7 @@ struct LoadingScreen: View {
     @State private var progress: CGFloat = 0.0
     @State private var percentage: Int = 0
     @State private var completedSteps: Int = 0
+    @State private var loadingTimer: Timer? = nil
     
     private let steps = [
         "Settlement eligibility",
@@ -1076,11 +1098,16 @@ struct LoadingScreen: View {
         .onAppear {
             startLoading()
         }
+        .onDisappear {
+            loadingTimer?.invalidate()
+            loadingTimer = nil
+        }
     }
     
     private func startLoading() {
         // Increment percentage smoothly
-        Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { timer in
+        loadingTimer?.invalidate()
+        loadingTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { timer in
             if percentage < 100 {
                 percentage += 1
                 progress = CGFloat(percentage) / 100.0
@@ -1093,6 +1120,7 @@ struct LoadingScreen: View {
                 if percentage == 100 { completedSteps = 5 }
             } else {
                 timer.invalidate()
+                loadingTimer = nil
             }
         }
     }
